@@ -1,0 +1,42 @@
+# Deep Learning for Weather Prediction: the lab environment.
+#
+#   conda env create -f environment.yaml
+#   conda activate dlwp
+#
+# The whole week is in here from the start; nothing is added per day.
+name: dlwp
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.13
+
+  # Learning stack.
+  - pytorch>=2.13
+  - lightning>=2.6
+  - einops>=0.8
+  - wandb
+
+  # Gridded data.  flox and bottleneck make groupby climatologies and
+  # rolling reductions over years of ERA5 fast rather than the slow step.
+  - xarray>=2025.6
+  - zarr>=3
+  - dask
+  - flox
+  - bottleneck
+  - netcdf4
+  - numpy>=2
+  - scipy
+
+  # Remote stores.  ERA5 lives in public Google Cloud buckets.
+  - fsspec
+  - gcsfs
+  - aiohttp
+  - requests
+
+  # Figures and notebooks.
+  - matplotlib>=3.10
+  - cartopy>=0.24
+  - jupyterlab
+  - ipywidgets

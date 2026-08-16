@@ -1,0 +1,15 @@
+# Cached data subsets and anything else you download.
+data/
+*.nc
+*.zarr/
+
+# Notebook checkpoints and machine noise.
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Training artefacts.
+lightning_logs/
+wandb/
+checkpoints/
