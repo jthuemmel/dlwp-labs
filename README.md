@@ -1,14 +1,16 @@
 # Deep Learning for Weather Prediction: labs
 
 The lab notebooks of the course and the package the labs fill in.
-Each notebook asks a line of questions and names the objects the answers produce; it gives no solution code.
-The code you write in answer to them accumulates in `utils/`, so that by the end the repository holds a working forecasting pipeline.
+The first notebook asks a line of questions and names the objects the answers produce; the later ones state the pieces to build and check each one.
+The code you write accumulates in `utils/`, so that by the end the repository holds a working forecasting pipeline.
 
 ## Structure
 
 ```
 01_data_and_verification.ipynb   ERA5 in xarray, climatologies, tendencies, the persistence forecast, and its verification
+02_dl_pipeline.ipynb             the training pipeline: Dataset, loss, Vision Transformer, LightningModule, and configuration
 utils/                           the package the labs fill in; empty modules for now
+configs/                         the configuration files the notebooks run from
 environment.yaml                 the conda environment every notebook runs in
 ```
 

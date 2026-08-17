@@ -1,0 +1,27 @@
+# Lab 2: persistence through the same pipeline; the loss at six hours is the number a trained model has to beat.
+
+dataset:
+  path: data/era5_5p6.zarr
+  stats_path: data/stats.zarr
+  variables: [T2M, U10M, V10M, TP6h, Z500, T850, Q700, U250, V250]
+  sequence_length: 2
+  time_slice: {start: "2015", stop: "2018"}
+  lat_slice: null
+  lon_slice: null
+  batch_size: 16
+  num_workers: 0
+
+network:
+  name: persistence
+
+objective:
+  name: mse
+  kwargs: {}
+
+trainer:
+  lr: 1.0e-3
+  weight_decay: 0.01
+  betas: [0.9, 0.95]
+  max_steps: 10
+  rollout_steps: 4
+  val_time_slice: {start: "2019", stop: "2019"}
