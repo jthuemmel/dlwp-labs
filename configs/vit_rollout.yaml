@@ -1,0 +1,39 @@
+# Lab 3, part 2: roll-out fine-tuning of a trained model from its checkpoint: four autoregressive steps in the training step,
+# a window of five states per sample, a smaller learning rate, and a few hundred steps.
+# For the roll-out during training instead, set pre_steps to the single-step phase and max_steps to the total.
+dataset:
+  path: data/era5_5p6.zarr
+  stats_path: data/stats.zarr
+  variables: [T2M, U10M, V10M, TP6h, Z500, T850, Q700, U250, V250]
+  sequence_length: 5
+  time_slice: {start: "2015", stop: "2018"}
+  lat_slice: null
+  lon_slice: null
+  batch_size: 16
+  num_workers: 0
+
+network:
+  name: vit
+  dim: 128
+  num_layers: 4
+  num_heads: 4
+  dim_heads: 32
+  patch_size: [4, 4]
+  expansion_factor: 2
+  separable_embed: false
+
+objective:
+  name: mse
+  kwargs: {}
+
+trainer:
+  lr: 1.0e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.95]
+  max_steps: 300
+  rollout_steps: 4
+  val_time_slice: {start: "2019", stop: "2019"}
+  predict_steps: 20        # section 0: the roll-out of Trainer.predict, five days at six hours
+  predict_stride: 5        # section 0: one initialisation every 30 hours, so 00, 06, 12, and 18 UTC in turn
+  train_rollout_steps: 4    # part 2: autoregressive steps in the training step
+  pre_steps: 0               # part 2: single-step training steps before the roll-out training begins
