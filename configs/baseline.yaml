@@ -1,0 +1,35 @@
+seed: 0
+
+experiment:
+  eval_path: data/era5_eval_5p6.zarr
+  climatology_path: data/clim_wb2_5p6.zarr
+
+dataset:
+  path: data/era5_5p6.zarr
+  stats_path: data/stats_train.zarr
+  # variables: [T2M, U10M, V10M, TP6h, Z500, T850, Q700, U250, V250]
+  # variables: [Z500, T850]
+  variables: [T2M, Z850, Z500, Z250, T850, T500, T250, Q850, Q500, Q250, U850, U500, U250, V850, V500, V250]
+  sequence_length: 2
+  time_slice: {start: "2015", stop: "2015"}
+  batch_size: 16
+
+network:
+  name: vit
+  dim: 128
+  num_layers: 4
+  num_heads: 4
+  dim_heads: 32
+  patch_size: [4, 4]
+  expansion_factor: 2
+
+objective:
+  name: mse
+
+trainer:
+  lr: 1.0e-3
+  weight_decay: 0.01
+  max_steps: 2000  # the lower end; longer runs keep improving
+  rollout_steps: 4 # roll-out a single day for validation
+  predict_steps: 20  # roll-out to five days at six hours
+  predict_stride: 2  # an initialisation every twelve hours, 00 and 12 UTC
