@@ -3,6 +3,9 @@ seed: 0
 experiment:
   eval_path: data/era5_eval_5p6.zarr
   climatology_path: data/clim_wb2_5p6.zarr
+  # the sources the two stores above are built from; the grid of your training data picks them when they are absent
+  # era5_store: gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-240x121_equiangular_with_poles_conservative.zarr
+  # climatology_store: gs://weatherbench2/datasets/era5-hourly-climatology/1990-2019_6h_240x121_equiangular_with_poles_conservative.zarr
 
 dataset:
   path: data/era5_5p6.zarr
@@ -12,7 +15,6 @@ dataset:
   variables: [T2M, Z850, Z500, Z250, T850, T500, T250, Q850, Q500, Q250, U850, U500, U250, V850, V500, V250]
   sequence_length: 2
   time_slice: {start: "2015", stop: "2015"}
-  batch_size: 16
 
 network:
   name: vit
@@ -27,6 +29,7 @@ objective:
   name: mse
 
 trainer:
+  batch_size: 16
   lr: 1.0e-3
   weight_decay: 0.01
   max_steps: 2000  # the lower end; longer runs keep improving

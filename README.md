@@ -13,6 +13,7 @@ The code you write accumulates in `utils/`, so that by the end the repository ho
 04_ensembles.ipynb               the empirical score, a noise input, and the verification of an ensemble
 experiment.py                    lab 5: one training run of the project, from the command line, with its scores and figures
 prepare_eval_data.py             lab 5: the evaluation store, the climatology, and the training statistics
+references/                      reference implementations to read: the configuration, the Dataset, the baseline model, the losses, the metrics, and the training module
 utils/                           the package the labs fill in; empty modules for now
 configs/                         the configuration files the notebooks run from
 environment.yaml                 the conda environment every notebook runs in
@@ -73,6 +74,10 @@ python prepare_eval_data.py --config configs/baseline.yaml
 ```
 
 It takes from your own store whatever it already covers and downloads the rest.
+The grid of your training data decides which WeatherBench 2 store is read, 5.625 degrees (64 by 32) or 1.5 degrees (240 by 121), so a run at another resolution fetches its evaluation years and its climatology at that resolution.
+`era5_store` and `climatology_store` in the `experiment` block name those sources yourself, for a grid or an archive the two entries do not cover.
+An `eval_path` that already holds your evaluation years is used as it stands and nothing is fetched.
+A run stops when the training store, the evaluation store, and the climatology are not on one grid.
 Your training data stay yours: the setup cell of lab 2 writes them, and nothing here downloads them.
 
 The sixteen variables of `configs/baseline.yaml` cost about 3 GB of ERA5 on a first run.

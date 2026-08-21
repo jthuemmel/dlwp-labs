@@ -60,8 +60,10 @@ class Experiment:
         assert self.settings["eval_path"] not in (data_cfg.path, data_cfg.stats_path), \
             "the evaluation store is separate from the training data and from its statistics"
 
-        self.eval_path = eval_store(self.settings["eval_path"], data_cfg.variables, source=data_cfg.path)
-        self.clim_path = climatology_store(self.settings["climatology_path"], data_cfg.variables)
+        self.eval_path = eval_store(self.settings["eval_path"], data_cfg.variables, source=data_cfg.path,
+                                    store=self.settings.get("era5_store"))
+        self.clim_path = climatology_store(self.settings["climatology_path"], data_cfg.variables, source=data_cfg.path,
+                                           store=self.settings.get("climatology_store"))
         stats_store(data_cfg.stats_path, data_cfg.path, data_cfg.variables, data_cfg.time_slice)
 
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -72,6 +74,12 @@ class Experiment:
         last = str(xr.open_zarr(data_cfg.path).time.values[-1])[:7]
         self.module = ForecastModule(replace(self.config, trainer=replace(trainer_cfg, val_time_slice={"start": last, "stop": last})))
         self.module.val_dataset = self.evaluation_dataset(VAL_YEAR, VAL_YEAR)
+
+        # the three stores are on one grid, whichever resolution you train at
+        grids = {name: (ds.sizes["latitude"], ds.sizes["longitude"]) for name, ds in
+                 (("training", xr.open_zarr(data_cfg.path)), ("evaluation", xr.open_zarr(self.eval_path)),
+                  ("climatology", xr.open_zarr(self.clim_path)))}
+        assert len(set(grids.values())) == 1, f"the stores are on different grids: {grids}"
 
         train_time = self.module.train_dataset.dataset.time.values
         print(f"training on {str(train_time[0])[:10]} to {str(train_time[-1])[:10]}, {len(self.module.train_dataset)} windows; "

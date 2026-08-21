@@ -8,9 +8,14 @@ import yaml
 xr.set_options(use_bottleneck=False)
 
 ANON = {"token": "anon"}
-ERA5 = "gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-64x32_equiangular_conservative.zarr"
-CLIM = "gs://weatherbench2/datasets/era5-hourly-climatology/1990-2019_6h_64x32_equiangular_conservative.zarr"
 YEARS = ("2016", "2019")
+# the WeatherBench 2 fields and climatology, by the grid (longitude, latitude) of your training data
+STORES = {
+    (64, 32): ("gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-64x32_equiangular_conservative.zarr",
+               "gs://weatherbench2/datasets/era5-hourly-climatology/1990-2019_6h_64x32_equiangular_conservative.zarr"),
+    (240, 121): ("gs://weatherbench2/datasets/era5/1959-2023_01_10-6h-240x121_equiangular_with_poles_conservative.zarr",
+                 "gs://weatherbench2/datasets/era5-hourly-climatology/1990-2019_6h_240x121_equiangular_with_poles_conservative.zarr"),
+}
 
 SURFACE = {
     "T2M": "2m_temperature",
@@ -41,6 +46,20 @@ def select(store: xr.Dataset, var: str) -> xr.DataArray:
     return da.sel(level=level, drop=True) if level is not None else da
 
 
+def grid(ds: xr.Dataset) -> tuple:
+    return ds.sizes["longitude"], ds.sizes["latitude"]
+
+
+def stores(source) -> tuple:
+    key = grid(xr.open_zarr(source))
+    assert key in STORES, f"your training data are on the grid {key}, and WeatherBench 2 is read here at {tuple(STORES)}"
+    return STORES[key]
+
+
+def same_grid(have: xr.Dataset, target: tuple, path: Path) -> None:
+    assert grid(have) == target, f"{path} is on the grid {grid(have)} and your training data on {target}; name another path"
+
+
 def covers(ds: xr.Dataset) -> bool:
     t = ds.time.values
     return t[0] <= np.datetime64(f"{YEARS[0]}-01-01") and t[-1] >= np.datetime64(f"{YEARS[1]}-12-31")
@@ -63,21 +82,25 @@ def missing_variables(path: Path, variables: list) -> tuple:
 
 
 ### STORE BUILDERS
-def eval_store(path, variables: list, source: str = None) -> Path:
+def eval_store(path, variables: list, source: str, store: str = None) -> Path:
     path = Path(path)
+    era5 = store or stores(source)[0]
+    target = grid(xr.open_zarr(source))
     have, missing = missing_variables(path, variables)
+    if have is not None:
+        same_grid(have, target, path)
     if not missing:
         return path
 
     fields = {}
-    local = xr.open_zarr(source) if source is not None and Path(source).exists() else None
+    local = xr.open_zarr(source) if Path(source).exists() else None
     if local is not None and covers(local):
         for var in [v for v in missing if v in local.data_vars]:
             fields[var] = local[var].sel(time=slice(*YEARS))
     remote = [v for v in missing if v not in fields]
 
     if remote:
-        store = xr.open_zarr(ERA5, storage_options=ANON)
+        store = xr.open_zarr(era5, storage_options=ANON)
         size = sum(select(store, v).sel(time=slice(*YEARS)).nbytes for v in remote) / 1e9
         print(f"downloading {', '.join(remote)} for {YEARS[0]} to {YEARS[1]}: {size:.1f} GB in memory, "
               f"more over the wire, since a level chunk carries the full column")
@@ -90,15 +113,19 @@ def eval_store(path, variables: list, source: str = None) -> Path:
     return path
 
 
-def climatology_store(path, variables: list) -> Path:
+def climatology_store(path, variables: list, source: str, store: str = None) -> Path:
     path = Path(path)
+    clim = store or stores(source)[1]
+    target = grid(xr.open_zarr(source))
     have = xr.open_zarr(path) if path.exists() else None
+    if have is not None:
+        same_grid(have, target, path)
     missing = list(variables) if have is None else [v for v in variables if v not in have.data_vars]
     if not missing:
         return path
 
     print(f"downloading the WeatherBench 2 1990 to 2019 climatology: {', '.join(missing)}")
-    store = xr.open_zarr(CLIM, storage_options=ANON)
+    store = xr.open_zarr(clim, storage_options=ANON)
     data = xr.Dataset({var: select(store, var) for var in missing})
     data = data.transpose("hour", "dayofyear", "latitude", "longitude")
     write(data, path, mode="a" if have is not None else "w")
@@ -131,8 +158,8 @@ def main():
 
     cfg = yaml.safe_load(open(args.config))
     settings, dataset = cfg.get("experiment", {}), cfg["dataset"]
-    eval_store(settings["eval_path"], dataset["variables"], source=dataset["path"])
-    climatology_store(settings["climatology_path"], dataset["variables"])
+    eval_store(settings["eval_path"], dataset["variables"], source=dataset["path"], store=settings.get("era5_store"))
+    climatology_store(settings["climatology_path"], dataset["variables"], source=dataset["path"], store=settings.get("climatology_store"))
     stats_store(dataset["stats_path"], dataset["path"], dataset["variables"], dataset.get("time_slice"))
 
 
